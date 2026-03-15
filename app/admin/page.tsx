@@ -1,104 +1,139 @@
 "use client"
 import { useEffect, useState } from "react"
 
-export default function AdminConsole() {
+export default function AdminPage() {
+  const [userEmail, setUserEmail] = useState("")
   const [allTasks, setAllTasks] = useState<any[]>([])
-  const [stats, setStats] = useState<any>({ totalHours: 0, activeUsers: 0 })
+  const [newUser, setNewUser] = useState({ email: "", password: "", name: "" })
   const [loading, setLoading] = useState(true)
 
-  // 🔗 UPDATED: Using your latest Google Script URL
+  // 🔗 Ensure this matches your latest Google Script Deployment URL
   const API_URL = "https://script.google.com/macros/s/AKfycbzoZ6rJnUJfPqQ86nlptocrWgIj5_843jkI-7i-aEJRRXpfCYwBGCRCCHqUgmNU5RMj/exec";
 
-  const loadAdminData = async () => {
+  const refreshAdminData = async () => {
     try {
-      // Fetches everyone's data using the new "email=all" logic
-      const res = await fetch(`${API_URL}?action=tasks&email=all`); 
+      setLoading(true);
+      const res = await fetch(`${API_URL}?action=tasks&email=all`);
       const data = await res.json();
-      
-      const total = data.reduce((sum: number, t: any) => sum + parseFloat(t.total || 0), 0);
-      const uniqueUsers = new Set(data.map((t: any) => t.email)).size;
-
-      setAllTasks(data);
-      setStats({ totalHours: total.toFixed(2), activeUsers: uniqueUsers });
-      setLoading(false);
+      setAllTasks(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Admin fetch error:", e);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAdminData();
+    const email = localStorage.getItem("email");
+    // Security check: If not you, kick them back to the dashboard
+    if (email !== "jayvimp@gmail.com") {
+      window.location.href = "/dashboard";
+    } else {
+      setUserEmail(email);
+      refreshAdminData();
+    }
   }, []);
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await fetch(`${API_URL}?action=createUser`, {
+        method: 'POST',
+        body: JSON.stringify(newUser)
+      });
+      alert(`Profile created for ${newUser.name}!`);
+      setNewUser({ email: "", password: "", name: "" });
+    } catch (e) {
+      alert("Error creating user");
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this global log entry?")) return;
+    try {
+      await fetch(`${API_URL}?action=deleteTask`, {
+        method: 'POST',
+        body: JSON.stringify({ taskId })
+      });
+      refreshAdminData();
+    } catch (e) {
+      console.error("Delete error:", e);
+    }
+  };
+
   if (loading) return (
-    <div className="min-h-screen bg-[#121212] text-white flex flex-col items-center justify-center font-sans">
-      <div className="animate-spin text-4xl mb-4">🐷</div>
-      <p className="text-gray-500 animate-pulse">Fetching global logs...</p>
+    <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center font-sans">
+      <div className="animate-pulse text-gray-500 uppercase tracking-widest text-xs">Loading Global Data...</div>
     </div>
-  )
+  );
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white p-6 font-sans">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-2xl font-black tracking-tighter uppercase">Biik Admin Console 🛠️</h1>
-            <p className="text-xs text-gray-500">Global System Overview</p>
-          </div>
-          <button 
-            onClick={() => window.location.href = "/dashboard"} 
-            className="text-xs bg-[#252525] px-4 py-2 rounded-lg border border-[#333] hover:bg-[#333] transition-colors"
-          >
-            Back to Dashboard
-          </button>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333]">
-            <p className="text-gray-500 text-[10px] uppercase tracking-[0.2em] mb-2 font-bold">Total System Hours</p>
-            <p className="text-5xl font-mono font-black text-green-400">{stats.totalHours}<span className="text-lg ml-1">h</span></p>
-          </div>
-          <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333]">
-            <p className="text-gray-500 text-[10px] uppercase tracking-[0.2em] mb-2 font-bold">Active Testers</p>
-            <p className="text-5xl font-mono font-black text-blue-400">{stats.activeUsers}</p>
-          </div>
+    <div className="min-h-screen bg-[#121212] text-white p-6 font-sans text-sm">
+      <div className="max-w-5xl mx-auto flex justify-between items-center mb-10">
+        <div>
+          <h1 className="text-2xl font-black tracking-tighter uppercase">Admin Console 🛠️</h1>
+          <p className="text-gray-500 text-[10px] uppercase">System Controller: {userEmail}</p>
         </div>
+        <button 
+          onClick={() => window.location.href = "/dashboard"} 
+          className="bg-[#1e1e1e] border border-[#333] px-4 py-2 rounded-xl hover:bg-[#252525] transition-colors"
+        >
+          Back to Dashboard
+        </button>
+      </div>
 
-        <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Global Task Feed</h2>
-            <button onClick={loadAdminData} className="text-[10px] text-gray-500 hover:text-white uppercase">Refresh Feed</button>
+      {/* USER REGISTRATION PANEL */}
+      <div className="max-w-5xl mx-auto mb-10 p-8 bg-blue-900/10 border border-blue-900/20 rounded-[2rem]">
+        <h2 className="text-blue-400 font-bold mb-6 uppercase text-[10px] tracking-widest">Register New Team Member</h2>
+        <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <input className="bg-[#121212] border border-[#333] p-3 rounded-xl outline-none focus:border-blue-500" placeholder="Full Name" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} required />
+          <input className="bg-[#121212] border border-[#333] p-3 rounded-xl outline-none focus:border-blue-500" placeholder="Email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} required />
+          <input className="bg-[#121212] border border-[#333] p-3 rounded-xl outline-none focus:border-blue-500" type="password" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
+          <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl py-3 shadow-lg shadow-blue-900/20 transition-all">Add User</button>
+        </form>
+      </div>
+
+      {/* GLOBAL FEED */}
+      <div className="max-w-5xl mx-auto">
+        <div className="flex justify-between items-end mb-4 px-2">
+          <h2 className="font-bold text-lg">Global Task Feed</h2>
+          <button onClick={refreshAdminData} className="text-[10px] text-gray-500 hover:text-white uppercase tracking-widest">Refresh Logs</button>
         </div>
-
-        <div className="bg-[#1e1e1e] rounded-3xl border border-[#333] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#252525] text-gray-500 uppercase text-[10px] tracking-widest">
-                <tr>
-                  <th className="px-6 py-4">User Email</th>
-                  <th className="px-6 py-4">Task Name</th>
-                  <th className="px-6 py-4">Duration</th>
-                  <th className="px-6 py-4 text-right">Date Logged</th>
+        <div className="bg-[#1e1e1e] rounded-[2rem] border border-[#333] overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-[#252525] text-gray-500 text-[10px] uppercase tracking-[0.2em]">
+              <tr>
+                <th className="px-8 py-5">User</th>
+                <th className="px-8 py-5">Task</th>
+                <th className="px-8 py-5">Duration</th>
+                <th className="px-8 py-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#333]">
+              {allTasks.slice().reverse().map((t: any, i) => (
+                <tr key={i} className="hover:bg-[#222] transition-colors">
+                  <td className="px-8 py-5 text-gray-400 font-medium">{t.email}</td>
+                  <td className="px-8 py-5 text-white">{t.task}</td>
+                  <td className="px-8 py-5 font-bold text-green-400 font-mono">{t.total}h</td>
+                  <td className="px-8 py-5 text-right">
+                    <button 
+                      onClick={() => handleDeleteTask(t.id)} 
+                      className="bg-red-900/20 text-red-500 border border-red-900/30 px-3 py-1 rounded-lg text-[10px] font-black hover:bg-red-900/40 transition-all"
+                    >
+                      DELETE
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#333]">
-                {allTasks.length > 0 ? allTasks.slice().reverse().map((t: any, i: number) => (
-                  <tr key={i} className="hover:bg-[#252525]/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-400">{t.email}</td>
-                    <td className="px-6 py-4 text-white">{t.task}</td>
-                    <td className="px-6 py-4 text-green-400 font-mono font-bold">+{t.total}h</td>
-                    <td className="px-6 py-4 text-gray-600 text-right font-mono">{t.date}</td>
-                  </tr>
-                )) : (
-                    <tr>
-                        <td colSpan={4} className="px-6 py-20 text-center text-gray-600">No data found in the system.</td>
-                    </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {allTasks.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-8 py-20 text-center text-gray-600 italic">The global logs are currently empty.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  )
+  );
 }
