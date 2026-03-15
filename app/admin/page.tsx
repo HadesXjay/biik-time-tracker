@@ -8,7 +8,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
 
   // 🔗 Ensure this matches your latest Google Script Deployment URL
-  const API_URL = "https://script.google.com/macros/s/AKfycbzoZ6rJnUJfPqQ86nlptocrWgIj5_843jkI-7i-aEJRRXpfCYwBGCRCCHqUgmNU5RMj/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxOxPQhowVW4zw79ckCwfvU3EGq6uB5-n--kpga6P-pqtxzCYB4XVKYuZsUjMDZupOW/exec";
 
   const refreshAdminData = async () => {
     try {
