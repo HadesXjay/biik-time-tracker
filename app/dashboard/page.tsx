@@ -13,7 +13,7 @@ export default function Dashboard() {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   // 🔗 UPDATED: Your latest Google Script Deployment URL
-  const API_URL = "https://script.google.com/macros/s/AKfycbwKjVG5Y6Lts4wZNke21_732JI7SFkGakS9EHDsHfXJuIHiccktBSCWVnNFIlVqMQfI/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbzoZ6rJnUJfPqQ86nlptocrWgIj5_843jkI-7i-aEJRRXpfCYwBGCRCCHqUgmNU5RMj/exec";
 
   const refreshData = async (email: string) => {
     try {
