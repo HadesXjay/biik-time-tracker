@@ -7,14 +7,13 @@ export default function Dashboard() {
   const [seconds, setSeconds] = useState(0)
   const [isActive, setIsActive] = useState(false)
   
-  // FIXED: Explicit types to prevent Vercel build errors
   const [tasks, setTasks] = useState<any[]>([])
   const [weeklyStats, setWeeklyStats] = useState<any>({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0 })
   
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 🔗 Using your updated Script URL
-  const API_URL = "https://script.google.com/macros/s/AKfycbwCZVV6Y8EZxxlhRpJRWV_V-9wfYwJeZ0nAW35h8a5joMSDFGIXgUDbSpCHMDZwfT2x/exec";
+  // 🔗 UPDATED: Your latest Google Script Deployment URL
+  const API_URL = "https://script.google.com/macros/s/AKfycbwKjVG5Y6Lts4wZNke21_732JI7SFkGakS9EHDsHfXJuIHiccktBSCWVnNFIlVqMQfI/exec";
 
   const refreshData = async (email: string) => {
     try {
@@ -76,6 +75,20 @@ export default function Dashboard() {
     }
   };
 
+  const handleClearToday = async () => {
+    if (!confirm("Are you sure you want to delete all of today's logs? This cannot be undone.")) return;
+    
+    try {
+      await fetch(`${API_URL}?action=clearToday`, {
+        method: 'POST',
+        body: JSON.stringify({ email: userEmail })
+      });
+      refreshData(userEmail);
+    } catch (e) {
+      console.error("Error clearing logs:", e);
+    }
+  };
+
   const formatTime = (s: number) => {
     const hrs = Math.floor(s / 3600).toString().padStart(2, '0');
     const mins = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
@@ -99,6 +112,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        {/* Timer Card */}
         <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333] flex flex-col items-center">
           <input 
             type="text" 
@@ -123,6 +137,7 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Stats Card */}
         <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333]">
           <h2 className="text-xs text-gray-500 uppercase tracking-widest mb-6">Weekly Stats (Hrs)</h2>
           <div className="grid grid-cols-5 gap-2">
@@ -138,8 +153,17 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Log Table */}
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-lg font-bold mb-4">Daily Log</h2>
+        <div className="flex justify-between items-end mb-4">
+          <h2 className="text-lg font-bold">Daily Log</h2>
+          <button 
+            onClick={handleClearToday}
+            className="text-[10px] text-gray-500 hover:text-red-400 uppercase tracking-widest transition-colors"
+          >
+            Clear Today's Logs
+          </button>
+        </div>
         <div className="bg-[#1e1e1e] rounded-2xl border border-[#333] overflow-hidden text-sm">
           <table className="w-full text-left">
             <tbody className="divide-y divide-[#333]">
