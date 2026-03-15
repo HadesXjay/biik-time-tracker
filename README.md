@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Biik Time Tracker 🐷
 
-## Getting Started
+A streamlined, high-performance time management tool built to track daily work hours with real-time synchronization to Google Sheets. 
 
-First, run the development server:
+## 🛠️ The Motivation
+Transitioning from an IT Global Helpdesk background, I wanted to build a tool that solved a common workflow friction: manual time logging. I developed Biik Tracker to master the **Next.js App Router** while implementing a "serverless" backend architecture using **Google Apps Script**.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Technical Highlights
+* **Framework**: Next.js 14 (App Router) with Tailwind CSS for a responsive, dark-mode-first UI.
+* **Backend/Database**: Developed a custom RESTful API using Google Apps Script to utilize Google Sheets as a low-overhead, highly accessible database.
+* **Role-Based Access Control (RBAC)**: Implemented a secure Admin Console accessible only to authorized emails for user provisioning and global log management.
+* **State Management**: Utilized React hooks (`useEffect`, `useRef`) for persistent timer logic that remains accurate during high-intensity multitasking.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🧠 Key Learnings
+* **API Architecture**: Designing CRUD operations (Get/Post) in Apps Script to handle data requests from a modern web app.
+* **IT Operations to Dev**: Applying my experience in **Identity & Access Management (IAM)** to build the admin verification logic.
+* **Frontend Optimization**: Ensuring the UI remains lightweight and fast, even when fetching large datasets from a spreadsheet backend.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🏗️ Getting Started
+1.  **Clone the repo**: `git clone https://github.com/HadesXjay/biik-time-tracker.git`
+2.  **Install dependencies**: `npm install`
+3.  **Local Dev**: `npm run dev`
+4.  **Configuration**: Update the `API_URL` in the dashboard and admin components with your Google Script deployment URL.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📈 Future Roadmap
+* [ ] Integration with a formal SQL database (Supabase/PostgreSQL).
+* [ ] "Last Seen" user activity tracking in the Admin Console.
+* [ ] CSV export functionality for monthly billing reports.
