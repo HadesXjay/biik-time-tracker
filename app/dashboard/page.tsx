@@ -148,7 +148,7 @@ export default function Dashboard() {
         <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333]">
           <div className="flex justify-between items-center mb-2">
             <p className="text-[10px] text-pink-400 font-bold italic">
-              {totalWeeklyHours >= weeklyGoal ? "Goal Hit! i wabyu ✨" : "Keep going, biik?"}
+              {totalWeeklyHours >= weeklyGoal ? "Goal Hit! i wabyu ✨" : "Keep going, biik!"}
             </p>
             <button onClick={() => refreshData(userEmail)} className="text-[9px] text-gray-600 hover:text-white uppercase tracking-tighter">
               {loading ? "Refreshing..." : "↻ Refresh Week"}
