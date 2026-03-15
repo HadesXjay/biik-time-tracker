@@ -1,49 +1,35 @@
 "use client"
 import { useState } from "react"
-import axios from "axios"
 
 export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
 
-  const handleLogin = async () => {
-    // ✅ URL correctly wrapped in quotes
-    const API_URL = "https://script.google.com/macros/s/AKfycbxPq3412S-lm0JOn60_8ySutLow9nlo-XBLFD9dQSuEAMx52-flo7qiElBeWhegHcrj/exec";
-    
-    setLoading(true)
-    try {
-      const res = await axios.get(`${API_URL}?action=login&email=${email}&password=${password}`)
-      if (res.data.success) {
-        localStorage.setItem("email", email)
-        window.location.href = "/dashboard"
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password === "biik") {
+      const formattedEmail = email.toLowerCase().trim();
+      localStorage.setItem("email", formattedEmail);
+      if (formattedEmail === "jayvimp@gmail.com") {
+        window.location.href = "/admin"; 
       } else {
-        alert("Invalid Login 🐷")
+        window.location.href = "/dashboard"; 
       }
-    } catch (error) {
-      alert("Check your connection or Script URL")
-    } finally {
-      setLoading(false)
+    } else {
+      alert("Incorrect password, biik!")
     }
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#121212]">
-      <div className="bg-[#1e1e1e] p-10 rounded-3xl shadow-2xl border border-[#333] flex flex-col items-center gap-6 w-full max-w-sm">
-        <h1 
-          className="text-4xl font-black text-white flex items-center gap-2"
-          style={{ textShadow: "2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000" }}
-        >
-          <span>🐷</span> Biik Tracker
-        </h1>
-        <div className="w-full flex flex-col gap-4">
-          <input type="email" placeholder="Email" className="bg-[#2a2a2a] p-4 rounded-xl text-white" onChange={e => setEmail(e.target.value)} />
-          <input type="password" placeholder="Password" className="bg-[#2a2a2a] p-4 rounded-xl text-white" onChange={e => setPassword(e.target.value)} />
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6">
+      <form onSubmit={handleLogin} className="bg-[#141414] p-10 rounded-3xl border border-[#222] w-full max-w-sm shadow-2xl">
+        <div className="text-center mb-8"><span className="text-4xl">🐷</span><h1 className="text-xl font-black uppercase tracking-tighter mt-2 text-white">Biik Tracker</h1></div>
+        <div className="space-y-4">
+          <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-[#0a0a0a] border border-[#333] p-4 rounded-xl text-white outline-none focus:border-blue-500 transition-all" />
+          <input type="password" placeholder="Password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#0a0a0a] border border-[#333] p-4 rounded-xl text-white outline-none focus:border-blue-500 transition-all" />
+          <button type="submit" className="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition-colors uppercase tracking-widest text-xs">Login</button>
         </div>
-        <button className="w-full bg-white text-black p-4 rounded-xl font-bold" onClick={handleLogin} disabled={loading}>
-          {loading ? "LOGGING IN..." : "LOGIN"}
-        </button>
-      </div>
+      </form>
     </div>
   )
 }
