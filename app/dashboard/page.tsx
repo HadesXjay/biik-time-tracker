@@ -17,8 +17,41 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [weeklyStats, setWeeklyStats] = useState<Record<string, number>>({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 })
   const [loading, setLoading] = useState(false)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+  // --- NEW LOGIC START ---
+  
+  // This function calculates how much time has passed since the "sticky note" was created
+  const syncTimerFromStorage = () => {
+    const savedStart = localStorage.getItem("biik_timer_start");
+    if (savedStart && isActive) {
+      const elapsed = Math.floor((Date.now() - parseInt(savedStart)) / 1000);
+      setSeconds(elapsed);
+    }
+  };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isActive) {
+      // Keep the UI ticking every second while she's looking at it
+      interval = setInterval(syncTimerFromStorage, 1000);
+    }
+
+    // This wakes the app up when she unlocks her phone or returns to the tab
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") syncTimerFromStorage();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [isActive]);
+
+  // --- NEW LOGIC END ---
 
   const totalWeeklyHours = Object.values(weeklyStats).reduce((a, b) => Number(a) + Number(b), 0);
 
@@ -39,90 +72,56 @@ export default function Dashboard() {
 
   useEffect(() => {
     const email = localStorage.getItem("email");
-    if (!email) { window.location.href = "/"; } else { setUserEmail(email); refreshData(email); }
+    if (!email) { 
+      window.location.href = "/"; 
+    } else { 
+      setUserEmail(email); 
+      refreshData(email); 
+      
+      // Check if a timer was already running before the page reloaded
+      const savedStart = localStorage.getItem("biik_timer_start");
+      if (savedStart) {
+        setIsActive(true);
+        syncTimerFromStorage();
+      }
+    }
   }, []);
 
   const toggleTimer = () => {
-    if (isActive) { if (timerRef.current) clearInterval(timerRef.current); setIsActive(false); } 
-    else { setIsActive(true); timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000); }
+    if (isActive) { 
+      // PAUSE: We keep the seconds but remove the start timestamp
+      localStorage.removeItem("biik_timer_start");
+      setIsActive(false); 
+    } else { 
+      // START: Create the "sticky note"
+      // If we are resuming, we set the start time back in the past so the math stays correct
+      const startTime = Date.now() - (seconds * 1000);
+      localStorage.setItem("biik_timer_start", startTime.toString());
+      setIsActive(true); 
+    }
   };
 
   const handleFinish = async () => {
     if (seconds < 1 || !API_URL) return;
     const hours = (seconds / 3600).toFixed(2);
+    setLoading(true);
     try {
       await fetch(`${API_URL}?action=addTask`, {
         method: 'POST',
         body: JSON.stringify({ email: userEmail, task: taskName || "Untitled Task", total: hours, date: selectedDate })
       });
-      setSeconds(0); setTaskName(""); refreshData(userEmail);
-    } catch (e) { console.error("Error saving task:", e); }
+      // CLEANUP
+      localStorage.removeItem("biik_timer_start");
+      setSeconds(0); 
+      setTaskName(""); 
+      setIsActive(false);
+      refreshData(userEmail);
+    } catch (e) { 
+      console.error("Error saving task:", e); 
+      alert("Failed to save. Check your connection!");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-[#121212] text-white p-6 font-sans">
-      <div className="max-w-4xl mx-auto flex justify-between items-center mb-8">
-        <h1 className="text-xl font-bold flex items-center gap-2"><span>🐷</span> Biik Tracker</h1>
-        <div className="flex items-center gap-4">
-          {userEmail.toLowerCase().trim() === "jayvimp@gmail.com" && (
-            <button onClick={() => window.location.href = "/admin"} className="text-[10px] bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-md hover:bg-blue-600/40 font-bold uppercase tracking-widest">Admin 🛠️</button>
-          )}
-          <span className="text-sm text-gray-500 font-mono">{userEmail}</span>
-          <button onClick={() => { localStorage.clear(); window.location.href = "/" }} className="text-xs bg-red-900/30 text-red-400 px-3 py-1 rounded-md border border-red-900/50 uppercase font-bold">Logout</button>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333] flex flex-col items-center">
-          <input type="text" placeholder="Task name..." value={taskName} onChange={e => setTaskName(e.target.value)} className="bg-transparent text-center text-lg mb-4 outline-none border-b border-[#333] w-full pb-2" />
-          <div className="mb-4 text-center">
-            <label className="text-[10px] text-gray-500 uppercase block mb-1 font-bold tracking-widest text-blue-400">Target Date:</label>
-            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-[#121212] border border-[#333] text-xs rounded-lg px-4 py-2 text-gray-300 outline-none" />
-          </div>
-          <div className="text-6xl font-mono font-black mb-8 tracking-tighter">
-            {Math.floor(seconds / 3600).toString().padStart(2, '0')}:{Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')}:{ (seconds % 60).toString().padStart(2, '0')}
-          </div>
-          <button onClick={toggleTimer} className={`w-full py-4 rounded-2xl font-bold ${isActive ? "bg-yellow-600" : "bg-white text-black"}`}>{isActive ? "PAUSE" : "START"}</button>
-          {!isActive && seconds > 0 && <button onClick={handleFinish} className="w-full mt-3 py-4 rounded-2xl font-bold bg-green-600">SAVE LOG</button>}
-        </div>
-
-        <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-[#333]">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-[10px] text-pink-400 font-bold italic">{totalWeeklyHours >= 20 ? "Goal Hit! i wabyu ✨" : "Weekly Progress"}</p>
-            <button onClick={() => refreshData(userEmail)} className="text-[9px] text-gray-600 hover:text-white font-bold">{loading ? "Syncing..." : "↻ Refresh"}</button>
-          </div>
-          <div className="w-full h-3 bg-[#121212] rounded-full overflow-hidden border border-[#333]">
-            <div className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-1000" style={{ width: `${Math.min((totalWeeklyHours / 20) * 100, 100)}%` }} />
-          </div>
-          <div className="grid grid-cols-7 gap-1 mt-6">
-            {Object.entries(weeklyStats).map(([day, val]) => (
-              <div key={day} className="text-center py-2 bg-[#121212] rounded-lg border border-[#333]">
-                <p className="text-[8px] text-gray-500 uppercase font-black">{day}</p>
-                <p className={`text-xs font-bold ${val > 0 ? "text-green-400" : "text-gray-800"}`}>{Number(val).toFixed(1)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-lg font-bold mb-4 px-2">Daily Log</h2>
-        <div className="bg-[#1e1e1e] rounded-3xl border border-[#333] overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <tbody className="divide-y divide-[#333]">
-              {tasks.length > 0 ? tasks.slice().reverse().map((t, i) => (
-                <tr key={t.taskId || i} className="hover:bg-[#252525]">
-                  <td className="px-8 py-5">{t.task}</td>
-                  <td className="px-8 py-5 text-green-400 font-bold">{t.total}h</td>
-                  <td className="px-8 py-5 text-gray-500 text-right font-mono">{String(t.date).split('T')[0]}</td>
-                </tr>
-              )) : (
-                <tr><td colSpan={3} className="py-10 text-center text-gray-600">No logs found.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
+  // ... (Keep the rest of your return/JSX exactly as it was)
