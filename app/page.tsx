@@ -9,7 +9,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     // ✅ URL correctly wrapped in quotes
-    const API_URL = "https://script.google.com/macros/s/AKfycbzCRZ-VcrexCdY-OPOrH0CInCby8MkLQB3SLnnB05TEPMkeOwFKVo1vddFssroeBxP-/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxPq3412S-lm0JOn60_8ySutLow9nlo-XBLFD9dQSuEAMx52-flo7qiElBeWhegHcrj/exec";
     
     setLoading(true)
     try {
