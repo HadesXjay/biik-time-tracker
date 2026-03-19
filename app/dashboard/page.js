@@ -81,13 +81,14 @@ export default function Dashboard() {
   }
 
   // FIXED: Changed 'email' key to 'user_email'
-  const handleFinish = async () => {
+const handleFinish = async () => {
     if (seconds < 1) return
     setLoading(true)
     const hours = parseFloat((seconds / 3600).toFixed(2))
     
+    // We use 'email' because that's what we just added to Supabase
     const { error } = await supabase.from('activity_logs').insert([{ 
-      user_email: userEmail, // Corrected column name
+      email: userEmail, 
       username: activeClient, 
       task_name: taskName || "Untitled Task", 
       duration_hours: hours, 
@@ -95,11 +96,9 @@ export default function Dashboard() {
     }])
 
     if (!error) {
-      alert("Log Saved Successfully!") // Added alert so you know it worked
+      alert("Log Saved!");
       localStorage.removeItem("biik_timer_start")
-      setSeconds(0); 
-      setTaskName(""); 
-      setIsActive(false)
+      setSeconds(0); setTaskName(""); setIsActive(false)
       refreshData(userEmail, activeClient)
     } else {
       alert(`Error: ${error.message}`)

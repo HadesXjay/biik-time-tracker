@@ -44,15 +44,19 @@ export default function AdminConsole() {
 
   const handleManualAdd = async (e) => {
     e.preventDefault()
-    // We send the migrationData object which now uses the correct 'user_email' key
-    const { error } = await supabase.from('activity_logs').insert([migrationData])
+    const { error } = await supabase.from('activity_logs').insert([{
+      email: migrationData.email, // Ensure this matches the new column
+      username: migrationData.username,
+      task_name: migrationData.task_name,
+      duration_hours: parseFloat(migrationData.duration_hours),
+      target_date: migrationData.target_date
+    }])
+
     if (!error) {
-      alert("Entry Migrated Successfully!");
-      setMigrationData({ ...migrationData, task_name: "", duration_hours: "" });
-      refreshAll();
+      alert("Entry Migrated!")
+      refreshAll()
     } else {
-      // If you still get a 'column not found' error, check if the DB column is actually 'user_id' or 'email_address'
-      alert(`Database Error: ${error.message}`);
+      alert(error.message)
     }
   }
 
