@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "BIIK 2.0 // Terminal",
-  description: "Advanced Time Tracking Infrastructure by Hades Tech",
+  title: "BIIK 2.0",
+  description: "Track your time with precision.",
 };
 
 export default function RootLayout({ children }) {
