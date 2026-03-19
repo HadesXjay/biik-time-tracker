@@ -12,9 +12,9 @@ export default function AdminConsole() {
   const [isAuthorized, setIsAuthorized] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Aligning state keys with your new DB columns
+  // Migration State with Target User Support
   const [migrationData, setMigrationData] = useState({
-    email: "daphne@example.com", 
+    targetEmail: "dcondino1996@gmail.com", // Default to Daphne
     username: "daphne_HVRCloud",
     task_name: "",
     duration_hours: "",
@@ -33,20 +33,12 @@ export default function AdminConsole() {
     setLoading(false)
   }
 
-  // Helper to sync email based on the client selected
-  useEffect(() => {
-    const emailMap = {
-      "daphne_HVRCloud": "daphne@hvr.cloud",
-      "daphne_Lunarglow": "daphne@lunarglow.com"
-    }
-    setMigrationData(prev => ({ ...prev, email: emailMap[prev.username] || "daphne@example.com" }))
-  }, [migrationData.username])
-
   const handleManualAdd = async (e) => {
     e.preventDefault()
-    // FIXED: Corrected 'uusername' typo and matched 'email' key
+    if (!migrationData.task_name || !migrationData.duration_hours) return alert("Fill everything, Hades.")
+
     const { error } = await supabase.from('activity_logs').insert([{
-      email: migrationData.email,
+      email: migrationData.targetEmail, // NOW DYNAMIC: Pushes to the selected user
       username: migrationData.username, 
       task_name: migrationData.task_name,
       duration_hours: parseFloat(migrationData.duration_hours),
@@ -54,7 +46,7 @@ export default function AdminConsole() {
     }])
 
     if (!error) {
-      alert("Entry Migrated!")
+      alert(`Success! Entry added for ${migrationData.targetEmail}`)
       setMigrationData({ ...migrationData, task_name: "", duration_hours: "" })
       refreshAll()
     } else {
@@ -94,7 +86,7 @@ export default function AdminConsole() {
         task_name: editForm.task_name,
         duration_hours: parseFloat(editForm.duration_hours),
         username: editForm.username,
-        email: editForm.email // Added email update capability
+        email: editForm.email 
       }).eq('id', id)
     
     if (!error) { 
@@ -155,14 +147,27 @@ export default function AdminConsole() {
           <div className="bg-[#141414] p-6 rounded-3xl border border-blue-900/30">
             <h2 className="text-[10px] font-black uppercase text-blue-500 mb-4 tracking-widest">Sheet Migration</h2>
             <form onSubmit={handleManualAdd} className="space-y-3">
+                <p className="text-[8px] text-gray-600 uppercase font-black mb-1">Target Account</p>
+                <select 
+                  value={migrationData.targetEmail} 
+                  onChange={e => setMigrationData({...migrationData, targetEmail: e.target.value})} 
+                  className="bg-[#0a0a0a] border border-blue-500/30 rounded-xl p-2 text-[10px] w-full text-blue-400 font-bold"
+                >
+                    {users.map(u => (
+                      <option key={u.id} value={u.email}>{u.email}</option>
+                    ))}
+                </select>
+
+                <p className="text-[8px] text-gray-600 uppercase font-black mb-1">Details</p>
                 <input type="date" value={migrationData.target_date} onChange={e => setMigrationData({...migrationData, target_date: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
-                <select value={migrationData.username} onChange={e => setMigrationData({...migrationData, username: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full">
+                <select value={migrationData.username} onChange={e => setMigrationData({...migrationData, username: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full text-gray-400">
                     <option value="daphne_HVRCloud">HVRCloud</option>
                     <option value="daphne_Lunarglow">Lunarglow</option>
+                    <option value="Hades_Personal">Personal</option>
                 </select>
                 <input placeholder="Task Name" value={migrationData.task_name} onChange={e => setMigrationData({...migrationData, task_name: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
                 <input type="number" step="0.01" placeholder="Hours" value={migrationData.duration_hours} onChange={e => setMigrationData({...migrationData, duration_hours: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
-                <button type="submit" className="w-full bg-blue-600 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors">Migrate Entry</button>
+                <button type="submit" className="w-full bg-blue-600 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-lg">Migrate Entry</button>
             </form>
           </div>
 
@@ -176,7 +181,7 @@ export default function AdminConsole() {
               {users.map(u => (
                 <div key={u.id} className="flex justify-between items-center bg-[#0a0a0a] p-3 rounded-xl border border-[#222]">
                   <span className="text-[10px] text-gray-400 font-mono truncate mr-2">{u.email}</span>
-                  {u.email !== "jayvimp@gmail.com" && <button onClick={() => removeUser(u.id)} className="text-red-900 text-[10px] font-black uppercase hover:text-red-500">Del</button>}
+                  {u.email !== "jayvimp@gmail.com" && <button onClick={() => removeUser(u.id)} className="text-red-900 text-[10px] font-black uppercase hover:text-red-500 transition-colors">Del</button>}
                 </div>
               ))}
             </div>
@@ -200,7 +205,6 @@ export default function AdminConsole() {
                       <input value={editForm.username} onChange={e => setEditForm({...editForm, username: e.target.value})} className="bg-black border border-blue-500/50 p-1 rounded text-blue-400 w-full text-xs"/> 
                       : <span className="text-blue-500 font-bold font-mono">{t.username || "General"}</span>
                     }
-                    {/* FIXED: Changed from t.user_email to t.email */}
                     <p className="text-[9px] text-gray-600 mt-1">{t.email}</p>
                   </td>
                   <td className="px-6 py-4">
