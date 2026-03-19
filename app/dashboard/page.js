@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [activeClient, setActiveClient] = useState("daphne_HVRCloud") 
   const [weeklyStats, setWeeklyStats] = useState({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 })
   const [loading, setLoading] = useState(false)
+  const [copiedId, setCopiedId] = useState(null) // New state for visual feedback
 
   const clients = ["daphne_HVRCloud", "daphne_Lunarglow"]
 
@@ -99,11 +100,13 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  // --- NEW COPY FUNCTION ---
+  // Improved Copy Function with Feedback
   const copyToClipboard = (task) => {
     const text = `${task.task_name} | ${task.duration_hours}h | ${task.target_date}`
-    navigator.clipboard.writeText(text)
-    alert("Task details copied!")
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(task.id)
+      setTimeout(() => setCopiedId(null), 2000) // Reset after 2 seconds
+    })
   }
 
   const totalWeeklyHours = Object.values(weeklyStats).reduce((a, b) => a + b, 0)
@@ -146,7 +149,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <div className="bg-[#141414] p-8 rounded-3xl border border-[#222] flex flex-col items-center">
+        <div className="bg-[#141414] p-8 rounded-3xl border border-[#222] flex flex-col items-center shadow-lg">
           <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-4">Active: {activeClient.split('_')[1]}</p>
           <input 
             type="text" 
@@ -163,12 +166,12 @@ export default function Dashboard() {
               {isActive ? "Stop" : "Start"}
             </button>
             {!isActive && seconds > 0 && (
-              <button onClick={handleFinish} className="flex-1 py-4 rounded-2xl font-bold bg-blue-600 uppercase text-xs tracking-widest">Save Log</button>
+              <button onClick={handleFinish} className="flex-1 py-4 rounded-2xl font-bold bg-blue-600 uppercase text-xs tracking-widest hover:bg-blue-500 transition-all">Save Log</button>
             )}
           </div>
         </div>
 
-        <div className="bg-[#141414] p-8 rounded-3xl border border-[#222]">
+        <div className="bg-[#141414] p-8 rounded-3xl border border-[#222] shadow-lg">
           <div className="flex justify-between items-end mb-6">
             <div>
               <p className="text-[10px] text-gray-500 font-black uppercase mb-1 tracking-widest">Weekly Total ({activeClient.split('_')[1]})</p>
@@ -210,12 +213,11 @@ export default function Dashboard() {
                 <td className="px-8 py-5 text-gray-300 font-medium group-hover:text-white transition-colors">{t.task_name}</td>
                 <td className="px-8 py-5 text-blue-500 font-black font-mono">{t.duration_hours}h</td>
                 <td className="px-8 py-5 text-right">
-                  {/* --- COPY BUTTON IN ROW --- */}
                   <button 
                     onClick={() => copyToClipboard(t)}
-                    className="text-[8px] border border-[#333] px-3 py-1.5 rounded-lg text-gray-600 font-bold uppercase tracking-widest hover:border-blue-500 hover:text-blue-500 transition-all"
+                    className={`text-[8px] border px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest transition-all ${copiedId === t.id ? "border-green-500 text-green-500" : "border-[#333] text-gray-600 hover:border-blue-500 hover:text-blue-500"}`}
                   >
-                    Copy
+                    {copiedId === t.id ? "Copied!" : "Copy"}
                   </button>
                 </td>
                 <td className="pr-8 py-5 text-gray-700 text-right font-bold text-[10px] uppercase tracking-tighter">{new Date(t.target_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
