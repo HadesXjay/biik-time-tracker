@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { supabase } from "../../Lib/supabaseClient" // Use two dots to go up to the root
+import { supabase } from "../../Lib/supabaseClient" 
 
 export default function Dashboard() {
   const [userEmail, setUserEmail] = useState("")
@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [activeClient, setActiveClient] = useState("daphne_HVRCloud") 
   const [weeklyStats, setWeeklyStats] = useState({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 })
   const [loading, setLoading] = useState(false)
-  const [copiedId, setCopiedId] = useState(null) // New state for visual feedback
+  const [copiedId, setCopiedId] = useState(null) 
 
   const clients = ["daphne_HVRCloud", "daphne_Lunarglow"]
 
@@ -39,6 +39,7 @@ export default function Dashboard() {
     return () => clearInterval(interval)
   }, [isActive])
 
+  // FIXED: Changed 'email' filter to 'user_email'
   const refreshData = async (email, client) => {
     setLoading(true)
     const d = new Date()
@@ -49,14 +50,14 @@ export default function Dashboard() {
     try {
       const { data } = await supabase.from('activity_logs')
         .select('*')
-        .eq('email', email)
+        .eq('user_email', email) // Corrected column name
         .eq('username', client)
         .order('target_date', { ascending: false })
       setTasks(data || [])
 
       const { data: weekData } = await supabase.from('activity_logs')
         .select('target_date, duration_hours')
-        .eq('email', email)
+        .eq('user_email', email) // Corrected column name
         .eq('username', client)
         .gte('target_date', monday)
       
@@ -79,13 +80,14 @@ export default function Dashboard() {
     }
   }
 
+  // FIXED: Changed 'email' key to 'user_email'
   const handleFinish = async () => {
     if (seconds < 1) return
     setLoading(true)
     const hours = parseFloat((seconds / 3600).toFixed(2))
     
     const { error } = await supabase.from('activity_logs').insert([{ 
-      email: userEmail, 
+      user_email: userEmail, // Corrected column name
       username: activeClient, 
       task_name: taskName || "Untitled Task", 
       duration_hours: hours, 
@@ -93,19 +95,23 @@ export default function Dashboard() {
     }])
 
     if (!error) {
+      alert("Log Saved Successfully!") // Added alert so you know it worked
       localStorage.removeItem("biik_timer_start")
-      setSeconds(0); setTaskName(""); setIsActive(false)
+      setSeconds(0); 
+      setTaskName(""); 
+      setIsActive(false)
       refreshData(userEmail, activeClient)
+    } else {
+      alert(`Error: ${error.message}`)
     }
     setLoading(false)
   }
 
-  // Improved Copy Function with Feedback
   const copyToClipboard = (task) => {
     const text = `${task.task_name} | ${task.duration_hours}h | ${task.target_date}`
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(task.id)
-      setTimeout(() => setCopiedId(null), 2000) // Reset after 2 seconds
+      setTimeout(() => setCopiedId(null), 2000) 
     })
   }
 
@@ -113,7 +119,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 font-sans">
-      
       <div className="max-w-4xl mx-auto flex justify-between items-center mb-8">
         <div className="flex items-center gap-6">
           <h1 className="text-xl font-black italic tracking-tighter uppercase">BIIK <span className="text-blue-500 font-mono">2.0</span></h1>
