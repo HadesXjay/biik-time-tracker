@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { supabase } from "../../lib/supabaseClient"
+import { supabase } from "../../Lib/supabaseClient" // Change 'lib' to 'Lib'
 
 export default function AdminConsole() {
   const [tasks, setTasks] = useState([])
@@ -11,6 +11,15 @@ export default function AdminConsole() {
   const [editForm, setEditForm] = useState({ task_name: "", duration_hours: 0, username: "" })
   const [isAuthorized, setIsAuthorized] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // NEW: Migration State
+  const [migrationData, setMigrationData] = useState({
+    email: "daphne@example.com",
+    username: "daphne_HVRCloud",
+    task_name: "",
+    duration_hours: "",
+    target_date: new Date().toLocaleDateString('en-CA')
+  })
 
   const refreshAll = async () => {
     setLoading(true)
@@ -24,6 +33,18 @@ export default function AdminConsole() {
     setLoading(false)
   }
 
+  const handleManualAdd = async (e) => {
+    e.preventDefault()
+    const { error } = await supabase.from('activity_logs').insert([migrationData])
+    if (!error) {
+      alert("Entry Migrated!");
+      setMigrationData({ ...migrationData, task_name: "", duration_hours: "" });
+      refreshAll();
+    } else {
+      alert(error.message);
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     localStorage.clear()
@@ -32,7 +53,6 @@ export default function AdminConsole() {
 
   useEffect(() => {
     const email = localStorage.getItem("email")
-    
     const verifyAccess = async () => {
       if (email === "jayvimp@gmail.com") {
         setIsAuthorized(true)
@@ -46,7 +66,6 @@ export default function AdminConsole() {
     verifyAccess()
   }, [])
 
-  // --- LOG MANAGEMENT ---
   const startEdit = (t) => {
     setEditingId(t.id)
     setEditForm({ task_name: t.task_name, duration_hours: t.duration_hours, username: t.username })
@@ -59,7 +78,6 @@ export default function AdminConsole() {
         duration_hours: parseFloat(editForm.duration_hours),
         username: editForm.username
       }).eq('id', id)
-    
     if (!error) { setEditingId(null); refreshAll(); }
   }
 
@@ -70,7 +88,6 @@ export default function AdminConsole() {
     }
   }
 
-  // --- USER MANAGEMENT ---
   const addUser = async () => {
     if (!newUserEmail) return
     const emailToAdd = newUserEmail.toLowerCase().trim()
@@ -85,16 +102,11 @@ export default function AdminConsole() {
     }
   }
 
-  // --- SECURITY FIREWALL UI ---
   if (isAuthorized === false) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center font-sans text-center">
-        <div className="bg-[#141414] p-12 rounded-[40px] border border-red-900/30 shadow-2xl">
-          <span className="text-6xl mb-6 block">🚫</span>
-          <h1 className="text-2xl font-black italic text-white mb-2">ACCESS <span className="text-red-600">DENIED</span></h1>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">You're not authorized here :P</p>
-          <button onClick={() => window.location.href = "/dashboard"} className="mt-8 text-[9px] bg-white text-black px-6 py-2 rounded-full font-black uppercase tracking-tighter hover:bg-gray-200 transition-all">Go Back</button>
-        </div>
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center font-sans text-center text-white">
+          <h1 className="text-2xl font-black italic mb-2">ACCESS <span className="text-red-600">DENIED</span></h1>
+          <button onClick={() => window.location.href = "/dashboard"} className="mt-8 text-[9px] bg-white text-black px-6 py-2 rounded-full font-black uppercase tracking-tighter hover:bg-gray-200">Go Back</button>
       </div>
     )
   }
@@ -103,28 +115,34 @@ export default function AdminConsole() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-8 font-sans">
-      {/* HEADER WITH LOGOUT */}
       <div className="max-w-6xl mx-auto flex justify-between items-center mb-10">
         <div>
           <h1 className="text-2xl font-black italic tracking-tighter text-blue-500">HADES <span className="text-white">ADMIN</span></h1>
           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Control Center v2.5</p>
         </div>
-        
         <div className="flex gap-3">
           <button onClick={() => window.location.href = "/dashboard"} className="text-[10px] bg-[#1a1a1a] border border-[#333] px-6 py-2 rounded-xl font-bold uppercase hover:bg-white hover:text-black transition-all">Dashboard</button>
-          <button onClick={handleLogout} className="p-2.5 bg-[#1a1a1a] border border-[#333] rounded-xl hover:bg-red-900/20 hover:border-red-900/50 group transition-all" title="Logout">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 group-hover:text-red-500 transition-colors">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-          </button>
+          <button onClick={handleLogout} className="p-2.5 bg-[#1a1a1a] border border-[#333] rounded-xl hover:bg-red-900/20 group transition-all">Logout</button>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="space-y-6">
-          {/* AUTHORIZED ACCESS */}
+          {/* MIGRATION TERMINAL */}
+          <div className="bg-[#141414] p-6 rounded-3xl border border-blue-900/30">
+            <h2 className="text-[10px] font-black uppercase text-blue-500 mb-4 tracking-widest">Sheet Migration</h2>
+            <form onSubmit={handleManualAdd} className="space-y-3">
+                <input type="date" value={migrationData.target_date} onChange={e => setMigrationData({...migrationData, target_date: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
+                <select value={migrationData.username} onChange={e => setMigrationData({...migrationData, username: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full">
+                    <option value="daphne_HVRCloud">HVRCloud</option>
+                    <option value="daphne_Lunarglow">Lunarglow</option>
+                </select>
+                <input placeholder="Task Name" value={migrationData.task_name} onChange={e => setMigrationData({...migrationData, task_name: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
+                <input type="number" step="0.01" placeholder="Hours" value={migrationData.duration_hours} onChange={e => setMigrationData({...migrationData, duration_hours: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
+                <button className="w-full bg-blue-600 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Migrate Entry</button>
+            </form>
+          </div>
+
           <div className="bg-[#141414] p-6 rounded-3xl border border-[#222]">
             <h2 className="text-[10px] font-black uppercase text-blue-500 mb-4 tracking-widest">Authorized Access</h2>
             <div className="flex gap-2 mb-6">
@@ -140,25 +158,8 @@ export default function AdminConsole() {
               ))}
             </div>
           </div>
-
-          {/* ACCESS LOGS */}
-          <div className="bg-[#141414] p-6 rounded-3xl border border-[#222]">
-            <h2 className="text-[10px] font-black uppercase text-gray-500 mb-4 tracking-widest">Recent Access Logs</h2>
-            <div className="space-y-3">
-              {attempts.map(a => (
-                <div key={a.id} className="text-[9px] border-b border-[#222] pb-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 truncate w-24">{a.attempted_email}</span>
-                    <span className={a.status === 'SUCCESS' ? "text-green-500" : "text-red-500"}>{a.status}</span>
-                  </div>
-                  <div className="text-gray-600 mt-1">{new Date(a.created_at).toLocaleString()}</div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* WORK LOGS TABLE */}
         <div className="lg:col-span-3 bg-[#141414] rounded-3xl border border-[#222] overflow-hidden">
           <div className="p-6 border-b border-[#222] bg-[#1a1a1a]/50 flex justify-between">
             <h2 className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Global Activity Logs</h2>
