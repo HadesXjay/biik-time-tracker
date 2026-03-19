@@ -49,7 +49,6 @@ export default function Dashboard() {
     const monday = new Date(d.setDate(diff)).toISOString().split('T')[0]
 
     try {
-      // Fetch activity logs - FIXED: Using 'email' to match DB column
       const { data, error } = await supabase.from('activity_logs')
         .select('*')
         .eq('email', email) 
@@ -59,7 +58,6 @@ export default function Dashboard() {
       if (error) throw error
       setTasks(data || [])
 
-      // Fetch weekly stats - FIXED: Using 'email' to match DB column
       const { data: weekData, error: weekError } = await supabase.from('activity_logs')
         .select('target_date, duration_hours')
         .eq('email', email)
@@ -94,7 +92,6 @@ export default function Dashboard() {
     setLoading(true)
     const hours = parseFloat((seconds / 3600).toFixed(2))
     
-    // Insert using 'email' key to match DB column
     const { error } = await supabase.from('activity_logs').insert([{ 
       email: userEmail, 
       username: activeClient, 
@@ -244,3 +241,6 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
