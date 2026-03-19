@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "BIIK 2.0",
-  description: "Track your time with precision.",
+  description: "Secured by Hades Tech",
 };
 
 export default function RootLayout({ children }) {
