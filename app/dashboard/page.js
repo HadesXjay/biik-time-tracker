@@ -31,7 +31,9 @@ export default function Dashboard() {
     if (isActive) {
       interval = setInterval(() => {
         const start = parseInt(localStorage.getItem("biik_timer_start"))
-        setSeconds(Math.floor((Date.now() - start) / 1000))
+        if (start) {
+          setSeconds(Math.floor((Date.now() - start) / 1000))
+        }
       }, 1000)
     } else {
       clearInterval(interval)
@@ -39,7 +41,6 @@ export default function Dashboard() {
     return () => clearInterval(interval)
   }, [isActive])
 
-  // FIXED: Changed 'email' filter to 'user_email'
   const refreshData = async (email, client) => {
     setLoading(true)
     const d = new Date()
@@ -48,25 +49,33 @@ export default function Dashboard() {
     const monday = new Date(d.setDate(diff)).toISOString().split('T')[0]
 
     try {
-      const { data } = await supabase.from('activity_logs')
+      // Fetch activity logs - FIXED: Using 'email' to match DB column
+      const { data, error } = await supabase.from('activity_logs')
         .select('*')
-        .eq('user_email', email) // Corrected column name
+        .eq('email', email) 
         .eq('username', client)
         .order('target_date', { ascending: false })
+      
+      if (error) throw error
       setTasks(data || [])
 
-      const { data: weekData } = await supabase.from('activity_logs')
+      // Fetch weekly stats - FIXED: Using 'email' to match DB column
+      const { data: weekData, error: weekError } = await supabase.from('activity_logs')
         .select('target_date, duration_hours')
-        .eq('user_email', email) // Corrected column name
+        .eq('email', email)
         .eq('username', client)
         .gte('target_date', monday)
       
+      if (weekError) throw weekError
+
       const stats = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 }
       weekData?.forEach(log => {
         const dayName = new Date(log.target_date).toLocaleDateString('en-US', { weekday: 'short' })
         if (stats[dayName] !== undefined) stats[dayName] += Number(log.duration_hours)
       })
       setWeeklyStats(stats)
+    } catch (err) {
+      console.error("Refresh error:", err.message)
     } finally { setLoading(false) }
   }
 
@@ -80,13 +89,12 @@ export default function Dashboard() {
     }
   }
 
-  // FIXED: Changed 'email' key to 'user_email'
-const handleFinish = async () => {
+  const handleFinish = async () => {
     if (seconds < 1) return
     setLoading(true)
     const hours = parseFloat((seconds / 3600).toFixed(2))
     
-    // We use 'email' because that's what we just added to Supabase
+    // Insert using 'email' key to match DB column
     const { error } = await supabase.from('activity_logs').insert([{ 
       email: userEmail, 
       username: activeClient, 
@@ -98,8 +106,10 @@ const handleFinish = async () => {
     if (!error) {
       alert("Log Saved!");
       localStorage.removeItem("biik_timer_start")
-      setSeconds(0); setTaskName(""); setIsActive(false)
-      refreshData(userEmail, activeClient)
+      setSeconds(0); 
+      setTaskName(""); 
+      setIsActive(false);
+      refreshData(userEmail, activeClient);
     } else {
       alert(`Error: ${error.message}`)
     }
@@ -170,7 +180,9 @@ const handleFinish = async () => {
               {isActive ? "Stop" : "Start"}
             </button>
             {!isActive && seconds > 0 && (
-              <button onClick={handleFinish} className="flex-1 py-4 rounded-2xl font-bold bg-blue-600 uppercase text-xs tracking-widest hover:bg-blue-500 transition-all">Save Log</button>
+              <button onClick={handleFinish} disabled={loading} className="flex-1 py-4 rounded-2xl font-bold bg-blue-600 uppercase text-xs tracking-widest hover:bg-blue-500 transition-all disabled:opacity-50">
+                {loading ? "Saving..." : "Save Log"}
+              </button>
             )}
           </div>
         </div>
@@ -232,7 +244,3 @@ const handleFinish = async () => {
           </tbody>
         </table>
       </div>
-    </div>
-  )
-}
-
