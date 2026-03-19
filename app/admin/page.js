@@ -45,8 +45,8 @@ export default function AdminConsole() {
   const handleManualAdd = async (e) => {
     e.preventDefault()
     const { error } = await supabase.from('activity_logs').insert([{
-      email: migrationData.email, // Ensure this matches the new column
-      username: migrationData.username,
+      email: migrationData.user_email, // The data from your form
+      uusername: migrationData.username, // The column we just added
       task_name: migrationData.task_name,
       duration_hours: parseFloat(migrationData.duration_hours),
       target_date: migrationData.target_date
@@ -206,3 +206,4 @@ export default function AdminConsole() {
     </div>
   )
 }
+
