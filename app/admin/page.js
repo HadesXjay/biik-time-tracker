@@ -8,13 +8,13 @@ export default function AdminConsole() {
   const [attempts, setAttempts] = useState([])
   const [newUserEmail, setNewUserEmail] = useState("")
   const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState({ task_name: "", duration_hours: 0, username: "" })
+  const [editForm, setEditForm] = useState({ task_name: "", duration_hours: 0, username: "", email: "" })
   const [isAuthorized, setIsAuthorized] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // FIXED: Changed 'email' to 'user_email' to match Supabase schema
+  // Aligning state keys with your new DB columns
   const [migrationData, setMigrationData] = useState({
-    user_email: "daphne@example.com", 
+    email: "daphne@example.com", 
     username: "daphne_HVRCloud",
     task_name: "",
     duration_hours: "",
@@ -33,20 +33,21 @@ export default function AdminConsole() {
     setLoading(false)
   }
 
-  // NEW: Quick Helper to update Daphne's email based on the selected username
+  // Helper to sync email based on the client selected
   useEffect(() => {
     const emailMap = {
-      "daphne_HVRCloud": "daphne@hvr.cloud", // Update with her actual work emails
+      "daphne_HVRCloud": "daphne@hvr.cloud",
       "daphne_Lunarglow": "daphne@lunarglow.com"
     }
-    setMigrationData(prev => ({ ...prev, user_email: emailMap[prev.username] || "daphne@example.com" }))
+    setMigrationData(prev => ({ ...prev, email: emailMap[prev.username] || "daphne@example.com" }))
   }, [migrationData.username])
 
   const handleManualAdd = async (e) => {
     e.preventDefault()
+    // FIXED: Corrected 'uusername' typo and matched 'email' key
     const { error } = await supabase.from('activity_logs').insert([{
-      email: migrationData.user_email, // The data from your form
-      uusername: migrationData.username, // The column we just added
+      email: migrationData.email,
+      username: migrationData.username, 
       task_name: migrationData.task_name,
       duration_hours: parseFloat(migrationData.duration_hours),
       target_date: migrationData.target_date
@@ -54,9 +55,10 @@ export default function AdminConsole() {
 
     if (!error) {
       alert("Entry Migrated!")
+      setMigrationData({ ...migrationData, task_name: "", duration_hours: "" })
       refreshAll()
     } else {
-      alert(error.message)
+      alert(`Migration Error: ${error.message}`)
     }
   }
 
@@ -83,7 +85,7 @@ export default function AdminConsole() {
 
   const startEdit = (t) => {
     setEditingId(t.id)
-    setEditForm({ task_name: t.task_name, duration_hours: t.duration_hours, username: t.username })
+    setEditForm({ task_name: t.task_name, duration_hours: t.duration_hours, username: t.username, email: t.email })
   }
 
   const saveEdit = async (id) => {
@@ -91,15 +93,22 @@ export default function AdminConsole() {
       .update({
         task_name: editForm.task_name,
         duration_hours: parseFloat(editForm.duration_hours),
-        username: editForm.username
+        username: editForm.username,
+        email: editForm.email // Added email update capability
       }).eq('id', id)
-    if (!error) { setEditingId(null); refreshAll(); }
+    
+    if (!error) { 
+      setEditingId(null); 
+      refreshAll(); 
+    } else {
+      alert(error.message)
+    }
   }
 
   const handleDeleteLog = async (id) => {
     if (confirm("Delete this work log permanently?")) {
-      await supabase.from('activity_logs').delete().eq('id', id)
-      refreshAll()
+      const { error } = await supabase.from('activity_logs').delete().eq('id', id)
+      if (!error) refreshAll()
     }
   }
 
@@ -187,14 +196,27 @@ export default function AdminConsole() {
               {tasks.map((t) => (
                 <tr key={t.id} className="hover:bg-[#1a1a1a] transition-colors">
                   <td className="px-6 py-4">
-                    {editingId === t.id ? <input value={editForm.username} onChange={e => setEditForm({...editForm, username: e.target.value})} className="bg-black border border-blue-500/50 p-1 rounded text-blue-400 w-full text-xs"/> : <span className="text-blue-500 font-bold font-mono">{t.username || "General"}</span>}
-                    <p className="text-[9px] text-gray-600 mt-1">{t.user_email}</p>
+                    {editingId === t.id ? 
+                      <input value={editForm.username} onChange={e => setEditForm({...editForm, username: e.target.value})} className="bg-black border border-blue-500/50 p-1 rounded text-blue-400 w-full text-xs"/> 
+                      : <span className="text-blue-500 font-bold font-mono">{t.username || "General"}</span>
+                    }
+                    {/* FIXED: Changed from t.user_email to t.email */}
+                    <p className="text-[9px] text-gray-600 mt-1">{t.email}</p>
                   </td>
                   <td className="px-6 py-4">
-                    {editingId === t.id ? <div className="flex gap-2"><input value={editForm.task_name} onChange={e => setEditForm({...editForm, task_name: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-full"/><input type="number" value={editForm.duration_hours} onChange={e => setEditForm({...editForm, duration_hours: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-16"/></div> : <><p className="text-gray-200 font-medium">{t.task_name}</p><p className="text-green-500 font-bold mt-1">{t.duration_hours}h <span className="text-gray-700 font-normal ml-2">| {t.target_date}</span></p></>}
+                    {editingId === t.id ? 
+                      <div className="flex gap-2">
+                        <input value={editForm.task_name} onChange={e => setEditForm({...editForm, task_name: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-full"/>
+                        <input type="number" value={editForm.duration_hours} onChange={e => setEditForm({...editForm, duration_hours: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-16"/>
+                      </div> 
+                      : <><p className="text-gray-200 font-medium">{t.task_name}</p><p className="text-green-500 font-bold mt-1">{t.duration_hours}h <span className="text-gray-700 font-normal ml-2">| {t.target_date}</span></p></>
+                    }
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {editingId === t.id ? <button onClick={() => saveEdit(t.id)} className="text-green-500 font-bold uppercase mr-3">Save</button> : <button onClick={() => startEdit(t)} className="text-blue-500 font-bold uppercase mr-3 hover:underline">Edit</button>}
+                    {editingId === t.id ? 
+                      <button onClick={() => saveEdit(t.id)} className="text-green-500 font-bold uppercase mr-3">Save</button> 
+                      : <button onClick={() => startEdit(t)} className="text-blue-500 font-bold uppercase mr-3 hover:underline">Edit</button>
+                    }
                     <button onClick={() => handleDeleteLog(t.id)} className="text-red-900 font-bold uppercase hover:text-red-600">Delete</button>
                   </td>
                 </tr>
@@ -206,4 +228,3 @@ export default function AdminConsole() {
     </div>
   )
 }
-
