@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { supabase } from "../../Lib/supabaseClient" // Change 'lib' to 'Lib'
+import { supabase } from "../../Lib/supabaseClient" 
 
 export default function AdminConsole() {
   const [tasks, setTasks] = useState([])
@@ -12,9 +12,9 @@ export default function AdminConsole() {
   const [isAuthorized, setIsAuthorized] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // NEW: Migration State
+  // FIXED: Changed 'email' to 'user_email' to match Supabase schema
   const [migrationData, setMigrationData] = useState({
-    email: "daphne@example.com",
+    user_email: "daphne@example.com", 
     username: "daphne_HVRCloud",
     task_name: "",
     duration_hours: "",
@@ -33,15 +33,26 @@ export default function AdminConsole() {
     setLoading(false)
   }
 
+  // NEW: Quick Helper to update Daphne's email based on the selected username
+  useEffect(() => {
+    const emailMap = {
+      "daphne_HVRCloud": "daphne@hvr.cloud", // Update with her actual work emails
+      "daphne_Lunarglow": "daphne@lunarglow.com"
+    }
+    setMigrationData(prev => ({ ...prev, user_email: emailMap[prev.username] || "daphne@example.com" }))
+  }, [migrationData.username])
+
   const handleManualAdd = async (e) => {
     e.preventDefault()
+    // We send the migrationData object which now uses the correct 'user_email' key
     const { error } = await supabase.from('activity_logs').insert([migrationData])
     if (!error) {
-      alert("Entry Migrated!");
+      alert("Entry Migrated Successfully!");
       setMigrationData({ ...migrationData, task_name: "", duration_hours: "" });
       refreshAll();
     } else {
-      alert(error.message);
+      // If you still get a 'column not found' error, check if the DB column is actually 'user_id' or 'email_address'
+      alert(`Database Error: ${error.message}`);
     }
   }
 
@@ -104,7 +115,7 @@ export default function AdminConsole() {
 
   if (isAuthorized === false) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center font-sans text-center text-white">
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center text-center text-white">
           <h1 className="text-2xl font-black italic mb-2">ACCESS <span className="text-red-600">DENIED</span></h1>
           <button onClick={() => window.location.href = "/dashboard"} className="mt-8 text-[9px] bg-white text-black px-6 py-2 rounded-full font-black uppercase tracking-tighter hover:bg-gray-200">Go Back</button>
       </div>
@@ -128,7 +139,6 @@ export default function AdminConsole() {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="space-y-6">
-          {/* MIGRATION TERMINAL */}
           <div className="bg-[#141414] p-6 rounded-3xl border border-blue-900/30">
             <h2 className="text-[10px] font-black uppercase text-blue-500 mb-4 tracking-widest">Sheet Migration</h2>
             <form onSubmit={handleManualAdd} className="space-y-3">
@@ -139,7 +149,7 @@ export default function AdminConsole() {
                 </select>
                 <input placeholder="Task Name" value={migrationData.task_name} onChange={e => setMigrationData({...migrationData, task_name: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
                 <input type="number" step="0.01" placeholder="Hours" value={migrationData.duration_hours} onChange={e => setMigrationData({...migrationData, duration_hours: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
-                <button className="w-full bg-blue-600 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Migrate Entry</button>
+                <button type="submit" className="w-full bg-blue-600 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors">Migrate Entry</button>
             </form>
           </div>
 
@@ -174,7 +184,7 @@ export default function AdminConsole() {
                 <tr key={t.id} className="hover:bg-[#1a1a1a] transition-colors">
                   <td className="px-6 py-4">
                     {editingId === t.id ? <input value={editForm.username} onChange={e => setEditForm({...editForm, username: e.target.value})} className="bg-black border border-blue-500/50 p-1 rounded text-blue-400 w-full text-xs"/> : <span className="text-blue-500 font-bold font-mono">{t.username || "General"}</span>}
-                    <p className="text-[9px] text-gray-600 mt-1">{t.email}</p>
+                    <p className="text-[9px] text-gray-600 mt-1">{t.user_email}</p>
                   </td>
                   <td className="px-6 py-4">
                     {editingId === t.id ? <div className="flex gap-2"><input value={editForm.task_name} onChange={e => setEditForm({...editForm, task_name: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-full"/><input type="number" value={editForm.duration_hours} onChange={e => setEditForm({...editForm, duration_hours: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-16"/></div> : <><p className="text-gray-200 font-medium">{t.task_name}</p><p className="text-green-500 font-bold mt-1">{t.duration_hours}h <span className="text-gray-700 font-normal ml-2">| {t.target_date}</span></p></>}
