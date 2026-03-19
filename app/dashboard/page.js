@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { supabase } from "../Lib/supabaseClient" // Change 'lib' to 'Lib'
+import { supabase } from "../../Lib/supabaseClient" // Use two dots to go up to the root
 
 export default function Dashboard() {
   const [userEmail, setUserEmail] = useState("")
