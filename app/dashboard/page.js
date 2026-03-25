@@ -14,10 +14,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState(null)
 
-  // Client List
   const clients = ["daphne_HVRCloud", "daphne_Lunarglow", "Hades_Personal"]
 
-  // Aesthetic Theme Mapping
   const themes = {
     daphne_HVRCloud: {
       bg: "bg-[#cfa7a2]",
@@ -28,7 +26,7 @@ export default function Dashboard() {
       accentText: "text-[#2e414d]",
       tableHover: "hover:bg-[#f8f0ef]",
       inputBorder: "border-[#cfa7a2]",
-      emojiGlow: "drop-shadow-[0_0_10px_rgba(255,105,180,0.4)]"
+      emojiGlow: "drop-shadow-[0_0:10px_rgba(255,105,180,0.4)]"
     },
     daphne_Lunarglow: {
       bg: "bg-[#cfa7a2]",
@@ -56,6 +54,7 @@ export default function Dashboard() {
 
   const currentTheme = themes[activeClient] || themes.Hades_Personal
 
+  // Refreshes when Client OR Date changes
   useEffect(() => {
     const email = localStorage.getItem("email")
     if (!email) {
@@ -64,7 +63,7 @@ export default function Dashboard() {
       setUserEmail(email)
       refreshData(email, activeClient)
     }
-  }, [activeClient])
+  }, [activeClient, selectedDate])
 
   useEffect(() => {
     let interval = null
@@ -89,15 +88,18 @@ export default function Dashboard() {
     const monday = new Date(d.setDate(diff)).toISOString().split('T')[0]
 
     try {
+      // 1. Fetch TABLE data: Only for the selected date
       const { data, error } = await supabase.from('activity_logs')
         .select('*')
         .eq('email', email)
         .eq('username', client)
-        .order('target_date', { ascending: false })
+        .eq('target_date', selectedDate) 
+        .order('created_at', { ascending: false })
       
       if (error) throw error
       setTasks(data || [])
 
+      // 2. Fetch GOAL data: All logs from Monday onwards
       const { data: weekData, error: weekError } = await supabase.from('activity_logs')
         .select('target_date, duration_hours')
         .eq('email', email)
@@ -130,7 +132,6 @@ export default function Dashboard() {
   const handleFinish = async () => {
     if (seconds < 1) return
     setLoading(true)
-    
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const formattedTime = parseFloat(`${h}.${m.toString().padStart(2, '0')}`);
@@ -149,8 +150,6 @@ export default function Dashboard() {
       setTaskName("");
       setIsActive(false);
       refreshData(userEmail, activeClient);
-    } else {
-      alert(`Error: ${error.message}`)
     }
     setLoading(false)
   }
@@ -171,73 +170,36 @@ export default function Dashboard() {
         <div className="flex items-center gap-6">
           <h1 className="text-xl font-black italic tracking-tighter uppercase">BIIK <span className={`${currentTheme.accentText} font-mono`}>2.0</span></h1>
           {userEmail === "jayvimp@gmail.com" && (
-            <button
-              onClick={() => window.location.href = "/admin"}
-              className={`text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest transition-all shadow-lg border ${activeClient.includes('Hades') ? "bg-blue-600/10 text-blue-500 border-blue-500/20" : "bg-[#2e414d]/10 text-[#2e414d] border-[#2e414d]/20"}`}
-            >
-              Terminal Admin
-            </button>
+            <button onClick={() => window.location.href = "/admin"} className={`text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest transition-all shadow-lg border ${activeClient.includes('Hades') ? "bg-blue-600/10 text-blue-500 border-blue-500/20" : "bg-[#2e414d]/10 text-[#2e414d] border-[#2e414d]/20"}`}>Terminal Admin</button>
           )}
         </div>
-
         <div className="flex items-center gap-4">
           <div className={`flex p-1 rounded-2xl border ${currentTheme.card} ${currentTheme.border}`}>
             {clients.map(c => (
-              <button
-                key={c}
-                onClick={() => setActiveClient(c)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${activeClient === c ? `${currentTheme.accent} text-white shadow-lg` : "opacity-50 hover:opacity-100"}`}
-              >
-                {c.split('_')[1]}
-              </button>
+              <button key={c} onClick={() => setActiveClient(c)} className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${activeClient === c ? `${currentTheme.accent} text-white shadow-lg` : "opacity-50 hover:opacity-100"}`}>{c.split('_')[1]}</button>
             ))}
           </div>
-          <button
-            onClick={() => { localStorage.clear(); window.location.href = "/"; }}
-            className="text-[9px] opacity-40 font-bold uppercase tracking-widest hover:text-red-500 hover:opacity-100 transition-all"
-          >
-            Log Out
-          </button>
+          <button onClick={() => { localStorage.clear(); window.location.href = "/"; }} className="text-[9px] opacity-40 font-bold uppercase tracking-widest hover:text-red-500 transition-all">Log Out</button>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <div className={`${currentTheme.card} ${currentTheme.border} p-8 rounded-3xl border flex flex-col items-center shadow-lg relative overflow-hidden`}>
-          
-          {/* BOUNCING BIIK EMOJI SECTION */}
+        <div className={`${currentTheme.card} ${currentTheme.border} p-8 rounded-3xl border flex flex-col items-center shadow-lg`}>
           <div className="mb-4 flex flex-col items-center min-h-[80px] justify-center">
-            {isActive ? (
-              <>
-                <div className={`text-5xl animate-biik-bounce ${currentTheme.emojiGlow}`}>
-                  🐷
-                </div>
-                {/* Dynamic Shadow */}
-                <div className="w-8 h-1 bg-black/10 rounded-full blur-sm mt-2 animate-pulse" />
-              </>
-            ) : (
-              <div className="text-5xl opacity-20 grayscale">🐷</div>
-            )}
+            <div className={`text-5xl ${isActive ? 'animate-biik-bounce' : 'opacity-20 grayscale'} ${currentTheme.emojiGlow}`}>🐷</div>
+            {isActive && <div className="w-8 h-1 bg-black/10 rounded-full blur-sm mt-2 animate-pulse" />}
           </div>
-
           <p className={`text-[10px] font-black uppercase tracking-widest mb-4 ${currentTheme.accentText}`}>Active: {activeClient.split('_')[1]}</p>
-          <input
-            type="text"
-            placeholder="What are you working on?"
-            value={taskName}
-            onChange={e => setTaskName(e.target.value)}
-            className={`bg-transparent text-center text-lg mb-6 outline-none border-b w-full pb-2 transition-colors ${currentTheme.inputBorder}`}
-          />
+          <input type="text" placeholder="What are you working on?" value={taskName} onChange={e => setTaskName(e.target.value)} className={`bg-transparent text-center text-lg mb-6 outline-none border-b w-full pb-2 transition-colors ${currentTheme.inputBorder}`} />
           <div className="text-7xl font-mono font-black mb-8 tracking-tighter tabular-nums">
-            {Math.floor(seconds / 3600).toString().padStart(2, '0')}:{Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')}:{ (seconds % 60).toString().padStart(2, '0')}
+            {Math.floor(seconds / 3600).toString().padStart(2, '0')}:{Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')}:{(seconds % 60).toString().padStart(2, '0')}
           </div>
           <div className="flex gap-3 w-full">
             <button onClick={toggleTimer} className={`flex-1 py-4 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all ${isActive ? "bg-red-900/20 text-red-500 border border-red-900/50" : activeClient.includes('Hades') ? "bg-white text-black" : "bg-[#2e414d] text-white"}`}>
               {isActive ? "Stop" : "Start"}
             </button>
             {!isActive && seconds > 0 && (
-              <button onClick={handleFinish} disabled={loading} className={`flex-1 py-4 rounded-2xl font-bold uppercase text-xs tracking-widest hover:opacity-80 transition-all disabled:opacity-50 text-white ${currentTheme.accent}`}>
-                {loading ? "Saving..." : "Save Log"}
-              </button>
+              <button onClick={handleFinish} disabled={loading} className={`flex-1 py-4 rounded-2xl font-bold uppercase text-xs tracking-widest text-white ${currentTheme.accent}`}>{loading ? "Saving..." : "Save Log"}</button>
             )}
           </div>
         </div>
@@ -267,60 +229,29 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* TABLE: Shows only the selected date logs */}
       <div className={`${currentTheme.card} ${currentTheme.border} max-w-4xl mx-auto rounded-3xl border overflow-hidden shadow-2xl`}>
         <div className={`px-8 py-5 border-b flex justify-between items-center ${currentTheme.border}`}>
-            <h2 className="text-[10px] font-black uppercase opacity-40 tracking-widest">{activeClient.split('_')[1]} Recent Activity</h2>
-            <input
-                type="date"
-                value={selectedDate}
-                onChange={e => setSelectedDate(e.target.value)}
-                className={`text-[10px] font-bold border rounded-lg px-2 py-1 outline-none ${activeClient.includes('Hades') ? "bg-[#0a0a0a] border-[#333] text-gray-400" : "bg-white border-gray-200 text-[#2e414d]"}`}
-            />
+            <h2 className="text-[10px] font-black uppercase opacity-40 tracking-widest">Log View for {selectedDate}</h2>
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className={`text-[10px] font-bold border rounded-lg px-2 py-1 outline-none ${activeClient.includes('Hades') ? "bg-[#0a0a0a] border-[#333] text-gray-400" : "bg-white border-gray-200 text-[#2e414d]"}`} />
         </div>
         <table className="w-full text-left text-sm">
           <tbody className={`divide-y ${currentTheme.border}`}>
             {tasks.length > 0 ? tasks.map((t) => (
               <tr key={t.id} className={`${currentTheme.tableHover} group transition-colors`}>
-                <td className="px-8 py-5 opacity-80 font-medium group-hover:opacity-100 transition-colors">{t.task_name}</td>
+                <td className="px-8 py-5 opacity-80 font-medium">{t.task_name}</td>
                 <td className={`px-8 py-5 font-black font-mono ${currentTheme.accentText}`}>{Number(t.duration_hours).toFixed(2)}</td>
                 <td className="px-8 py-5 text-right">
-                  <button
-                    onClick={() => copyToClipboard(t)}
-                    className={`text-[8px] border px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest transition-all ${copiedId === t.id ? "border-green-500 text-green-500" : `border-transparent opacity-20 hover:opacity-100 hover:border-current`}`}
-                  >
+                  <button onClick={() => copyToClipboard(t)} className={`text-[8px] border px-3 py-1.5 rounded-lg font-bold uppercase transition-all ${copiedId === t.id ? "border-green-500 text-green-500" : `border-transparent opacity-20 hover:opacity-100 hover:border-current`}`}>
                     {copiedId === t.id ? "Copied!" : "Copy"}
                   </button>
                 </td>
-                <td className="pr-8 py-5 opacity-30 text-right font-bold text-[10px] uppercase tracking-tighter">{new Date(t.target_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
               </tr>
             )) : (
-              <tr><td colSpan="4" className="px-8 py-10 text-center opacity-30 italic text-xs tracking-widest uppercase">No data for this client yet</td></tr>
+              <tr><td colSpan="3" className="px-8 py-10 text-center opacity-30 italic text-xs uppercase tracking-widest">No logs found for this date</td></tr>
             )}
           </tbody>
         </table>
-        
-        <div className={`px-8 py-4 border-t ${activeClient.includes('Hades') ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-100"}`}>
-          <div className="flex items-start gap-3">
-            <div className={`${currentTheme.accentText} mt-1`}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            </div>
-            <div>
-              <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${currentTheme.accentText}`}>Time Reference</p>
-              <p className="text-[11px] opacity-60 leading-relaxed mb-3">
-                This log uses <span className="font-bold">Clock Format (H.MM)</span>.
-                The decimal value represents total minutes, not a percentage of an hour.
-              </p>
-              <div className="flex gap-2">
-                <span className={`px-2 py-1 rounded text-[9px] font-black font-mono border ${activeClient.includes('Hades') ? "bg-black border-[#222] text-blue-500" : "bg-white border-gray-200 text-[#2e414d]"}`}>
-                  1.46 = 1h 46m
-                </span>
-                <span className={`px-2 py-1 rounded text-[9px] font-black font-mono border ${activeClient.includes('Hades') ? "bg-black border-[#222] text-blue-500" : "bg-white border-gray-200 text-[#2e414d]"}`}>
-                  2.05 = 2h 05m
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

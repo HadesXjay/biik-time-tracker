@@ -42,3 +42,13 @@ body {
 .animate-biik-bounce {
   animation: biikBounce 0.8s infinite ease-in-out;
 }
+
+@keyframes biikBounce {
+  0%, 100% { transform: translateY(0) scale(1.1, 0.9); }
+  50% { transform: translateY(-15px) scale(0.9, 1.1); }
+}
+
+.animate-biik-bounce {
+  display: inline-block;
+  animation: biikBounce 0.8s infinite ease-in-out;
+}
