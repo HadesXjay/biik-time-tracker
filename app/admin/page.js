@@ -14,7 +14,7 @@ export default function AdminConsole() {
 
   // Migration State with Target User Support
   const [migrationData, setMigrationData] = useState({
-    targetEmail: "dcondino1996@gmail.com", // Default to Daphne
+    targetEmail: "dcondino1996@gmail.com", 
     username: "daphne_HVRCloud",
     task_name: "",
     duration_hours: "",
@@ -37,11 +37,14 @@ export default function AdminConsole() {
     e.preventDefault()
     if (!migrationData.task_name || !migrationData.duration_hours) return alert("Fill everything, Hades.")
 
+    // Ensure we store exactly what is typed (e.g., 1.45 stays 1.45)
+    const formattedHours = parseFloat(parseFloat(migrationData.duration_hours).toFixed(2))
+
     const { error } = await supabase.from('activity_logs').insert([{
-      email: migrationData.targetEmail, // NOW DYNAMIC: Pushes to the selected user
+      email: migrationData.targetEmail, 
       username: migrationData.username, 
       task_name: migrationData.task_name,
-      duration_hours: parseFloat(migrationData.duration_hours),
+      duration_hours: formattedHours,
       target_date: migrationData.target_date
     }])
 
@@ -84,7 +87,7 @@ export default function AdminConsole() {
     const { error } = await supabase.from('activity_logs')
       .update({
         task_name: editForm.task_name,
-        duration_hours: parseFloat(editForm.duration_hours),
+        duration_hours: parseFloat(parseFloat(editForm.duration_hours).toFixed(2)),
         username: editForm.username,
         email: editForm.email 
       }).eq('id', id)
@@ -145,7 +148,7 @@ export default function AdminConsole() {
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="space-y-6">
           <div className="bg-[#141414] p-6 rounded-3xl border border-blue-900/30">
-            <h2 className="text-[10px] font-black uppercase text-blue-500 mb-4 tracking-widest">Sheet Migration</h2>
+            <h2 className="text-[10px] font-black uppercase text-blue-500 mb-4 tracking-widest">Manual Entry (Clock Style)</h2>
             <form onSubmit={handleManualAdd} className="space-y-3">
                 <p className="text-[8px] text-gray-600 uppercase font-black mb-1">Target Account</p>
                 <select 
@@ -166,8 +169,9 @@ export default function AdminConsole() {
                     <option value="Hades_Personal">Personal</option>
                 </select>
                 <input placeholder="Task Name" value={migrationData.task_name} onChange={e => setMigrationData({...migrationData, task_name: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
-                <input type="number" step="0.01" placeholder="Hours" value={migrationData.duration_hours} onChange={e => setMigrationData({...migrationData, duration_hours: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
-                <button type="submit" className="w-full bg-blue-600 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-lg">Migrate Entry</button>
+                {/* Updated placeholder to show expected format */}
+                <input type="number" step="0.01" placeholder="H.MM (e.g., 1.45)" value={migrationData.duration_hours} onChange={e => setMigrationData({...migrationData, duration_hours: e.target.value})} className="bg-[#0a0a0a] border border-[#333] rounded-xl p-2 text-[10px] w-full"/>
+                <button type="submit" className="w-full bg-blue-600 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-lg">Save Entry</button>
             </form>
           </div>
 
@@ -195,7 +199,7 @@ export default function AdminConsole() {
           </div>
           <table className="w-full text-left text-xs">
             <thead className="bg-[#1a1a1a] text-gray-600 font-black uppercase text-[9px]">
-              <tr><th className="px-6 py-4">Client / User</th><th className="px-6 py-4">Task & Hours</th><th className="px-6 py-4 text-right">Actions</th></tr>
+              <tr><th className="px-6 py-4">Client / User</th><th className="px-6 py-4">Task & Format (H.MM)</th><th className="px-6 py-4 text-right">Actions</th></tr>
             </thead>
             <tbody className="divide-y divide-[#1e1e1e]">
               {tasks.map((t) => (
@@ -211,9 +215,9 @@ export default function AdminConsole() {
                     {editingId === t.id ? 
                       <div className="flex gap-2">
                         <input value={editForm.task_name} onChange={e => setEditForm({...editForm, task_name: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-full"/>
-                        <input type="number" value={editForm.duration_hours} onChange={e => setEditForm({...editForm, duration_hours: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-16"/>
+                        <input type="number" step="0.01" value={editForm.duration_hours} onChange={e => setEditForm({...editForm, duration_hours: e.target.value})} className="bg-black border border-[#333] p-1 rounded w-20"/>
                       </div> 
-                      : <><p className="text-gray-200 font-medium">{t.task_name}</p><p className="text-green-500 font-bold mt-1">{t.duration_hours}h <span className="text-gray-700 font-normal ml-2">| {t.target_date}</span></p></>
+                      : <><p className="text-gray-200 font-medium">{t.task_name}</p><p className="text-blue-500 font-bold mt-1 font-mono">{Number(t.duration_hours).toFixed(2)} <span className="text-gray-700 font-normal ml-2">| {t.target_date}</span></p></>
                     }
                   </td>
                   <td className="px-6 py-4 text-right">

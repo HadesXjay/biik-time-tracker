@@ -1,11 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #121212;
+  --background: #0a0a0a;
   --foreground: #ffffff;
+  --card-bg: #121212;
+  --accent: #3b82f6;
+}
+
+.light {
+  --background: #f3f4f6;
+  --foreground: #111827;
+  --card-bg: #ffffff;
+  --accent: #2563eb;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
+  transition: background 0.3s ease, color 0.3s ease;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Custom utility for your cards to react to the theme */
+.bg-biik-card {
+  background-color: var(--card-bg);
+}
+
+.border-biik {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.light .border-biik {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes biikBounce {
+  0%, 100% { transform: translateY(0) scale(1.1, 0.9); }
+  50% { transform: translateY(-15px) scale(0.9, 1.1); }
+}
+
+.animate-biik-bounce {
+  animation: biikBounce 0.8s infinite ease-in-out;
 }
