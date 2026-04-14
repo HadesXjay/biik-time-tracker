@@ -79,13 +79,20 @@ export default function Dashboard() {
     return () => clearInterval(interval)
   }, [isActive])
 
+  // HELPER: Converts H.MM (like 1.60) to True Decimal (2.00)
+  const normalizeTime = (val) => {
+    const num = Number(val);
+    const hours = Math.floor(num);
+    const minutes = Math.round((num - hours) * 100);
+    // If minutes >= 60, it's a clock-format value that needs rollover
+    return minutes < 60 ? hours + (minutes / 60) : num;
+  }
+
   const refreshData = async (email, client) => {
     setLoading(true)
-    
     try {
-      // CLEAN WEEK CALCULATION (Prevents Timezone Issues)
       const baseDate = new Date(selectedDate);
-      baseDate.setHours(12, 0, 0, 0); // Set to noon to avoid day-skipping
+      baseDate.setHours(12, 0, 0, 0); 
       
       const day = baseDate.getDay();
       const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -99,7 +106,7 @@ export default function Dashboard() {
       const weekStart = monday.toISOString().split('T')[0];
       const weekEnd = sunday.toISOString().split('T')[0];
 
-      // 1. Fetch TABLE data: Using the range GTE/LTE
+      // 1. Fetch Logs for Table View
       const { data, error } = await supabase.from('activity_logs')
         .select('*')
         .eq('email', email)
@@ -109,9 +116,15 @@ export default function Dashboard() {
         .order('target_date', { ascending: false })
       
       if (error) throw error
-      setTasks(data || [])
 
-      // 2. Fetch GOAL data (Current week only)
+      // Map data to include a normalized display value
+      const normalizedTasks = (data || []).map(t => ({
+        ...t,
+        display_hours: normalizeTime(t.duration_hours)
+      }));
+      setTasks(normalizedTasks)
+
+      // 2. Fetch Logs for Weekly Stats
       const d = new Date()
       d.setHours(12, 0, 0, 0);
       const dDay = d.getDay()
@@ -125,10 +138,14 @@ export default function Dashboard() {
         .gte('target_date', currentMonday)
       
       const stats = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 }
+      
       weekData?.forEach(log => {
-        const logDate = new Date(log.target_date + "T12:00:00"); // Force noon
+        const logDate = new Date(log.target_date + "T12:00:00"); 
         const dayName = logDate.toLocaleDateString('en-US', { weekday: 'short' })
-        if (stats[dayName] !== undefined) stats[dayName] += Number(log.duration_hours)
+        
+        if (stats[dayName] !== undefined) {
+          stats[dayName] += normalizeTime(log.duration_hours);
+        }
       })
       setWeeklyStats(stats)
     } catch (err) {
@@ -149,15 +166,15 @@ export default function Dashboard() {
   const handleFinish = async () => {
     if (seconds < 1) return
     setLoading(true)
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const formattedTime = parseFloat(`${h}.${m.toString().padStart(2, '0')}`);
+    
+    // SAVES AS TRUE DECIMAL: 1h 30m = 1.50
+    const decimalHours = parseFloat((seconds / 3600).toFixed(2));
     
     const { error } = await supabase.from('activity_logs').insert([{
       email: userEmail,
       username: activeClient,
       task_name: taskName || "Untitled Task",
-      duration_hours: formattedTime,
+      duration_hours: decimalHours,
       target_date: selectedDate
     }])
 
@@ -170,7 +187,7 @@ export default function Dashboard() {
   }
 
   const copyToClipboard = (task) => {
-    const text = `${task.task_name} | ${Number(task.duration_hours).toFixed(2)} | ${task.target_date}`
+    const text = `${task.task_name} | ${Number(task.display_hours).toFixed(2)} | ${task.target_date}`
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(task.id)
       setTimeout(() => setCopiedId(null), 2000)
@@ -227,11 +244,11 @@ export default function Dashboard() {
             </div>
             <div className="text-right">
                 <p className="text-[10px] opacity-30 font-bold uppercase tracking-widest">Goal</p>
-                <p className="text-xs opacity-50 font-bold">40.00</p>
+                <p className="text-xs opacity-50 font-bold">20.00</p>
             </div>
           </div>
           <div className={`w-full h-1.5 rounded-full overflow-hidden mb-8 ${activeClient.includes('Hades') ? "bg-[#0a0a0a]" : "bg-gray-100"}`}>
-            <div className={`h-full transition-all duration-1000 ${currentTheme.accent}`} style={{ width: `${Math.min((totalWeeklyHours / 40) * 100, 100)}%` }} />
+            <div className={`h-full transition-all duration-1000 ${currentTheme.accent}`} style={{ width: `${Math.min((totalWeeklyHours / 20) * 100, 100)}%` }} />
           </div>
           <div className="grid grid-cols-7 gap-1.5">
             {Object.entries(weeklyStats).map(([day, val]) => (
@@ -254,7 +271,7 @@ export default function Dashboard() {
             {tasks.length > 0 ? tasks.map((t) => (
               <tr key={t.id} className={`${currentTheme.tableHover} group transition-colors`}>
                 <td className="px-8 py-5 opacity-80 font-medium group-hover:opacity-100 transition-colors">{t.task_name}</td>
-                <td className={`px-8 py-5 font-black font-mono ${currentTheme.accentText}`}>{Number(t.duration_hours).toFixed(2)}</td>
+                <td className={`px-8 py-5 font-black font-mono ${currentTheme.accentText}`}>{Number(t.display_hours).toFixed(2)}</td>
                 <td className="px-8 py-5 text-right">
                   <button onClick={() => copyToClipboard(t)} className={`text-[8px] border px-3 py-1.5 rounded-lg font-bold uppercase transition-all ${copiedId === t.id ? "border-green-500 text-green-500" : `border-transparent opacity-20 hover:opacity-100 hover:border-current`}`}>
                     {copiedId === t.id ? "Copied!" : "Copy"}
@@ -278,11 +295,11 @@ export default function Dashboard() {
             <div>
               <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${currentTheme.accentText}`}>Time Reference</p>
               <p className="text-[11px] opacity-60 leading-relaxed mb-3">
-                This log uses <span className="font-bold">Clock Format (H.MM)</span>. The decimal value represents total minutes, not a percentage of an hour.
+                This log uses <span className="font-bold">Decimal Format</span> for accurate mathematical summing.
               </p>
               <div className="flex gap-2">
-                <span className={`px-2 py-1 rounded text-[9px] font-black font-mono border ${activeClient.includes('Hades') ? "bg-black border-[#222] text-blue-500" : "bg-white border-gray-200 text-[#2e414d]"}`}>1.46 = 1h 46m</span>
-                <span className={`px-2 py-1 rounded text-[9px] font-black font-mono border ${activeClient.includes('Hades') ? "bg-black border-[#222] text-blue-500" : "bg-white border-gray-200 text-[#2e414d]"}`}>2.05 = 2h 05m</span>
+                <span className={`px-2 py-1 rounded text-[9px] font-black font-mono border ${activeClient.includes('Hades') ? "bg-black border-[#222] text-blue-500" : "bg-white border-gray-200 text-[#2e414d]"}`}>1.50 = 1h 30m</span>
+                <span className={`px-2 py-1 rounded text-[9px] font-black font-mono border ${activeClient.includes('Hades') ? "bg-black border-[#222] text-blue-500" : "bg-white border-gray-200 text-[#2e414d]"}`}>0.75 = 45m</span>
               </div>
             </div>
           </div>
